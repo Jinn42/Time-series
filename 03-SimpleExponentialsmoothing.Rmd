@@ -1,0 +1,169 @@
+---
+title: "Simple Exponential smoothing"
+output: html_notebook
+---
+
+
+Libraries
+```{r}
+library(forecast)
+library(fpp)
+```
+
+Import dataset
+```{r}
+data=read.csv(file="http://eric.univ-lyon2.fr/~jjacques/Download/DataSet/varicelle.csv")
+varicelle<-ts(data$x,start=c(1931,1),end=c(1972,6),freq=12)
+```
+
+TS manipulation
+```{r}
+window(varicelle,start=1950,end=1952)
+head(varicelle,12)
+tail(varicelle,6)
+```
+
+### Simple Exponential Smoothing (SES)
+Forecasting is done with a constant
+```{r}
+data=read.table(file="http://eric.univ-lyon2.fr/~jjacques/Download/DataSet/serie2.txt")
+serie=ts(data)
+plot(serie,xlim=c(1,120),ylim=c(0,80))
+# alpha close to 0 so weight decrease less rapidly for old values
+LES=HoltWinters(serie,alpha=0.01,beta=FALSE,gamma=FALSE)
+p<-predict(LES,n.ahead=20)
+lines(p,col=2) # red
+# alpha close to 1 so weight decrease more rapidly for old values
+LES=HoltWinters(serie,alpha=0.05,beta=FALSE,gamma=FALSE)
+p<-predict(LES,n.ahead=20)
+lines(p,col=3) # green
+# alpha optimal choice 
+LES=HoltWinters(serie,alpha=NULL,beta=FALSE,gamma=FALSE)
+p<-predict(LES,n.ahead=20)
+lines(p,col=4) # blue
+```
+
+forecasting interval
+```{r}
+LES=HoltWinters(serie,alpha=NULL,beta=FALSE,gamma=FALSE)
+plot(serie,xlim=c(1,120),ylim=c(0,120))
+p<-predict(LES,n.ahead=20,prediction.interval = TRUE)
+lines(p[,1],col=2)
+lines(p[,2],col=3);lines(p[,3],col=3);
+```
+
+
+```{r}
+data=read.csv(file="http://eric.univ-lyon2.fr/~jjacques/Download/DataSet/varicelle.csv")
+vari_train<-ts(data$x[1:480],start=c(1931,1),end=c(1970,12),freq=12)
+vari_test<-ts(data$x[481:498],start=c(1971,1),end=c(1972,6),freq=12)
+plot(vari_train,xlim=c(1931,1973))
+lines(vari_test,col=2) # test dataset in red
+SES=HoltWinters(vari_train,alpha=NULL,beta=FALSE,gamma=FALSE)
+p1<-predict(SES,n.ahead=18)
+lines(p1,col=3) # green
+```
+
+Using SES from forecast package
+
+```{r}
+SES=ses(vari_train,h=18)
+round(accuracy(SES),2)
+autoplot(SES)
+```
+
+
+### Non seasonal Holt-Winters smoothing
+Forecasting is done with the linear trend
+```{r}
+LES=HoltWinters(serie,alpha=NULL,beta=NULL,gamma=FALSE)
+plot(serie,xlim=c(1,120),ylim=c(0,60))
+p<-predict(LES,n.ahead=20)
+lines(p,col=2)
+```
+
+
+On varicelle dataset
+```{r}
+HOLT=holt(vari_train,h=20)
+round(accuracy(HOLT),2)
+autoplot(vari_train) + autolayer(HOLT,series='fitted',PI=FALSE)
+```
+
+
+Damped non seasonal Holt-Winters smoothing
+```{r}
+HOLT1=holt(vari_train,h=20)
+HOLT2=holt(vari_train,damped=TRUE,phi=0.9,h=50)
+autoplot(vari_train) +
+autolayer(HOLT1,series='HW',PI=FALSE) +
+autolayer(HOLT2,series='Damped HW',PI=FALSE)
+```
+
+
+# Nb of Sheeps in Asia Dataset
+```{r}
+data(livestock)
+autoplot(livestock) +
+xlab("year") +
+ylab("Sheep in Asia (millions)")
+```
+
+```{r}
+e1 <- tsCV(livestock, ses, h=1)
+e2 <- tsCV(livestock, holt, h=1)
+e3 <- tsCV(livestock, holt, damped=TRUE, h=1)
+```
+
+
+```{r}
+mean(e1^2, na.rm=TRUE)
+mean(e2^2, na.rm=TRUE)
+mean(e3^2, na.rm=TRUE)
+```
+
+```{r}
+HWd=holt(livestock,damped=TRUE,h=12)
+HWd[["model"]]
+```
+
+```{r}
+autoplot(livestock) +
+autolayer(HWd) +
+xlab("year") +
+ylab("Sheep in Asia (millions)")
+```
+
+
+
+### Compare RMSE for models
+
+Split in Train Test
+
+```{r}
+train = window(livestock,end=1998)
+test = window(livestock,start=c(1998,1))
+```
+
+
+```{r}
+SES=ses(train,h=10)
+# SES=HoltWinters(train,alpha=NULL,beta=FALSE,gamma=FALSE)
+round(accuracy(SES,test),2)
+autoplot(SES)+
+  autolayer(test)
+```
+
+```{r}
+HOLT=holt(train,h=10)
+round(accuracy(HOLT,test),2)
+autoplot(train) + autolayer(HOLT,series='fitted',PI=FALSE) + 
+  autolayer(test)
+```
+
+```{r}
+HOLT=holt(train,damped=TRUE, h=10)
+round(accuracy(HOLT,test),2)
+autoplot(train) + autolayer(HOLT,series='fitted',PI=FALSE)+ 
+  autolayer(test)
+```
