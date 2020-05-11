@@ -1,0 +1,30 @@
+---
+title: "heteroscedastic series"
+output: html_notebook
+---
+
+Seasonal ARIMA model
+
+```{r}
+library(forecast)
+```
+
+```{r}
+data = AirPassengers
+```
+
+```{r}
+cbind(data,log(data)) %>%
+autoplot(facets=TRUE)
+```
+
+BoxCox transformation
+
+```{r}
+lambda=BoxCox.lambda(data)
+lambda
+```
+
+```{r}
+autoplot(BoxCox(data,lambda))
+```
