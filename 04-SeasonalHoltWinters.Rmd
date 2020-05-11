@@ -1,0 +1,63 @@
+---
+title: "Seasonal Holt-Winters"
+output: html_notebook
+---
+
+Libraries
+```{r}
+library(forecast)
+```
+
+Additive seasonal Holt-Winters
+Example
+```{r}
+serie=0.5*(1:100)+rnorm(100,0,1)+3*cos(pi/6*(1:100))
+serie=ts(serie,start=c(1,1),end=c(9,4),frequency = 12)
+LES=HoltWinters(serie,alpha=NULL,beta=NULL,gamma=NULL)
+plot(serie,xlim=c(1,11),ylim=c(0,70))
+p<-predict(LES,n.ahead=20)
+lines(p,col=2)
+```
+
+Multiplicative seasonal Holt-Winters
+Example
+```{r}
+serie=5*(1:100)+rnorm(100,0,1)+cos(pi/6*(1:100))*(1:100)
+serie=ts(serie,start=c(1,1),end=c(9,4),frequency = 12)
+LES=HoltWinters(serie,alpha=NULL,beta=NULL,gamma=NULL,seasonal = "multi")
+plot(serie,xlim=c(1,11),ylim=c(0,700))
+p<-predict(LES,n.ahead=24)
+lines(p,col=2)
+```
+
+Varicelle Dataset
+Import dataset
+```{r}
+data=read.csv(file="http://eric.univ-lyon2.fr/~jjacques/Download/DataSet/varicelle.csv")
+varicelle<-ts(data$x,start=c(1931,1),end=c(1972,6),freq=12)
+vari_train<-ts(data$x[1:480],start=c(1931,1),end=c(1970,12),freq=12)
+vari_test<-ts(data$x[481:498],start=c(1971,1),end=c(1972,6),freq=12)
+```
+
+Compare additive and multiplicative models.
+```{r}
+fit1=hw(vari_train,seasonal='additive',h=18)
+fit2=hw(vari_train,seasonal='multiplicative',h=18)
+autoplot(vari_train) +
+autolayer(fit1,series='HW add.',PI=FALSE) +
+autolayer(fit2,series='HW mult.',PI=FALSE)
+```
+
+Check RMSE
+```{r}
+print(sqrt(mean((fit1$mean-vari_test)^2)))
+print(sqrt(mean((fit2$mean-vari_test)^2)))
+```
+
+Same model with damping
+```{r}
+fit3=hw(vari_train,seasonal='additive',damped=TRUE,h=18)
+fit4=hw(vari_train,seasonal='multiplicative',damped=TRUE,h=18)
+print(sqrt(mean((fit3$mean-vari_test)^2)))
+print(sqrt(mean((fit4$mean-vari_test)^2)))
+```
