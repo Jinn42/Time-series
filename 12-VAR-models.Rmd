@@ -1,0 +1,72 @@
+---
+title: "VAR MODELS"
+output: html_notebook
+---
+
+Predict multiple time series
+
+```{r}
+library(forecast)
+```
+
+```{r}
+library(fpp)
+data(usconsumption)
+plot(usconsumption)
+```
+
+```{r}
+library(vars)
+VARselect(usconsumption, lag.max=8, type="const")
+```
+
+```{r}
+var <- VAR(usconsumption, p=5,type = "const")
+```
+
+```{r}
+fcst <- forecast(var)
+autoplot(fcst)
+```
+
+```{r}
+us_app=ts(usconsumption[1:156,],start=c(1970,1),end=c(2008,4),frequency = 4)
+us_test=ts(usconsumption[157:164,],start=c(2009,1),end=c(2010,4),frequency = 4)
+```
+
+```{r}
+var <- VAR(us_app, p=5,type = "const")
+```
+
+```{r}
+serial.test(var, lags.pt=10, type="PT.asymptotic")
+```
+
+```{r}
+fcst <- forecast(var,h=8)
+```
+
+
+```{r}
+autoplot(fcst)
+```
+
+```{r}
+print(sqrt(mean(us_test[,1]-fcst$forecast$consumption$mean)^2))
+```
+
+```{r}
+print(sqrt(mean(us_test[,2]-fcst$forecast$income$mean)^2))
+```
+
+```{r}
+mod1=auto.arima(us_app[,1])
+pred1=forecast(mod1,h =8)
+mod2=auto.arima(us_app[,2])
+pred2=forecast(mod2,h =8)
+print(sqrt(mean(us_test[,1]-pred1$mean)^2))
+```
+
+```{r}
+print(sqrt(mean(us_test[,2]-pred2$mean)^2))
+```
