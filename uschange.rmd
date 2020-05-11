@@ -1,0 +1,62 @@
+---
+title: "Income"
+author: "Julien JACQUES"
+date: "2/19/2020"
+output: pdf_document
+---
+
+# Income
+
+```{r}
+library(fpp2)
+income=uschange[,"Income"]
+autoplot(income)
+```
+
+
+We see no trend and no seasonal pattern... We can check the ACF 
+```{r}
+ggAcf(income)
+ggPacf(income)
+```
+
+It seems to be no correlation or auto-correlation... 
+We can check that with a Box.test:
+```{r}
+Box.test(income,lag=10,type="Ljung-Box")
+```
+
+Indeed, no reason to reject the fact that it is a white noise : there is nothing to forecast in this series !!
+
+# Income
+
+```{r}
+library(fpp2)
+unemp=uschange[,"Unemployment"]
+autoplot(unemp)
+Box.test(unemp,lag=10,type="Ljung-Box")
+ggAcf(unemp)
+ggPacf(unemp)
+```
+
+Maybe an $AR_8$ ?
+
+```{r}
+ar8=Arima(unemp,order=c(8,0,0))
+```
+
+We can check the residual
+```{r}
+checkresiduals(ar8)
+```
+
+The residual are a white noise, we can keep this model for our forecast.
+
+```{r}
+autoplot(forecast(ar8,h=10))
+```
+
+
+
+
+

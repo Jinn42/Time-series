@@ -1,0 +1,103 @@
+---
+title: "Electricity Demand"
+author: "Julien JACQUES"
+date: "2/25/2020"
+output: pdf_document
+---
+
+```{r, message=FALSE, warning=FALSE}
+library(fpp2)
+autoplot(elecdaily)
+```
+
+We split into train and test
+```{r, message=FALSE, warning=FALSE}
+elec_train=window(elecdaily,start=c(1,1),end=c(51,7))
+elec_test=window(elecdaily,start=c(52,1),end=c(52,7))
+```
+
+We will use a dynamic regression model for forecasting electricity demand, using temperature and workday as external covariates. The order of the ARIMA model for the residual part is automaticaly selected
+```{r, message=FALSE, warning=FALSE}
+fit=auto.arima(elec_train[,"Demand"],xreg=elec_train[,2:3])
+prev=forecast(fit,h=7,xreg=elec_test[,2:3])
+autoplot(elec_test)+autolayer(prev$mean)
+print(sqrt(mean((prev$mean-elec_test)^2)))
+```
+
+But if we check the residual, there is still some autocorrelation:
+```{r}
+summary(fit)
+checkresiduals(fit)
+```
+
+We can try to find a better model manually. Let's have a look to the relationship between Demand and Temperature
+
+```{r}
+plot(elec_train[,"Temperature"],elec_train[,"Demand"])
+```
+
+The link seems to be quadratic. We introduced $Temperature^2$ in the model.
+
+```{r}
+elec_train=cbind(Demand=elec_train[,1],WorkDay=elec_train[,2],Temp=elec_train[,3],SquareTemp=elec_train[,3]^2)
+```
+
+Let's start by removing the effect of covariate.
+```{r}
+fit2=tslm(Demand~WorkDay+Temp+SquareTemp+trend+season,data=elec_train)
+summary(fit2)
+```
+
+All the feature seems significant.
+
+Let's now have a look to the residual
+```{r}
+checkresiduals(fit2)
+```
+
+It seems that we have still a trend
+```{r}
+ggtsdisplay(diff(fit2$residuals))
+```
+
+There is some significant ACF at order 1 (among others...). We can try an $MA_8$.
+
+```{r}
+tmp=diff(fit2$residuals)
+fit3=Arima(tmp,order=c(0,0,4),seasonal = c(0,0,2))
+checkresiduals(fit3)
+```
+
+The correspondant residuals are almost uncorrelated. We can now go back to the initial series, and try to propose the following model (we choose the $MA_q$ order for the non seasonal and seasonal part as above, and we choose $d=2$ because we differenciate 2 times : 1 when we introduce a trend in tslm, and a second time for the residual).
+
+```{r}
+fit4=Arima(elec_train[,"Demand"],xreg=elec_train[,2:4],order=c(0,2,4),seasonal = c(0,0,2))
+checkresiduals(fit4)
+```
+
+But it remains some autocorrelation... 
+After several tests, I find the following model which has almost uncorrelated residuals:
+
+```{r}
+fit4=Arima(elec_train[,"Demand"],xreg=elec_train[,2:4],order=c(0,2,13),seasonal = c(0,0,3))
+checkresiduals(fit4)
+```
+
+We can then perform forecasting:
+```{r, message=FALSE, warning=FALSE}
+elec_test=cbind(Demand=elec_test[,1],WorkDay=elec_test[,2],Temp=elec_test[,3],SquareTemp=elec_test[,3]^2)
+prev=forecast(fit4,h=7,xreg=elec_test[,2:4])
+autoplot(elec_test)+autolayer(prev$mean)
+print(sqrt(mean((prev$mean-elec_test[,"Demand"])^2)))
+```
+
+The result are much better than those obtained with the auto.arima function.
+
+We can compare to forecasting obtained without using covariate:
+```{r, message=FALSE, warning=FALSE}
+fit=auto.arima(elec_train[,"Demand"])
+prev2=forecast(fit,h=7)
+autoplot(elec_test)+autolayer(prev$mean,series="using Temperature and Workday")+autolayer(prev2$mean,series="without external covariate")
+print(sqrt(mean((prev2$mean-elec_test[,"Demand"])^2)))
+```
+The result are worse than those obtained with the covariates. Using covariate iss usefull.

@@ -1,0 +1,37 @@
+---
+title: "Air Passengers"
+author: "Julien JACQUES"
+date: "2/19/2020"
+output: pdf_document
+---
+
+
+We study the number of passengers per month (in thousands) in air transport, from 1949 to 1960. This time series is available on R (\texttt{AirPassengers}).
+
+```{r, out.width="70%"}
+data("AirPassengers")
+plot(AirPassengers)
+plot(diff(AirPassengers,lag = 12,differences = 1))
+```
+
+It seems that there is still a slightly growing trend...
+
+Let's apply differencing once again
+```{r, out.width="70%"}
+seriediff=diff(diff(AirPassengers,lag = 12))
+plot(seriediff)
+```
+
+It seems visually stationary...
+
+We can have a look to the correlogram and 
+```{r, out.width="70%"}
+acf(seriediff)
+```
+
+and test if the residual series is a white noise
+```{r}
+Box.test(seriediff,lag=10,type="Ljung-Box")$p.value
+```
+This is not the case: there is some autocorrelations to modelize...
+

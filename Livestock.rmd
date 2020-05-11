@@ -1,0 +1,40 @@
+---
+title: "Livestock"
+author: "Julien JACQUES"
+date: "2/19/2020"
+output: pdf_document
+---
+
+We load the dataset
+```{r, message=FALSE, warning=FALSE}
+library(fpp)
+data('livestock')
+autoplot(livestock)
+```
+
+We separate into training and test
+```{r}
+ls_train=head(livestock,n = length(livestock)-10)
+ls_test=tail(livestock,n=10)
+plot(ls_train,xlim=c(1960,2010),ylim=c(200,500))
+lines(ls_test,lty=2)
+```
+
+We compare the 3 models on the test set
+```{r}
+SES=ses(ls_train,h=10,alpha=NULL)
+print(sqrt(mean((SES$mean-ls_test)^2)))
+h=holt(ls_train,h=10,alpha=NULL,beta=NULL)
+print(sqrt(mean((h$mean-ls_test)^2)))
+hd=holt(ls_train,h=10,alpha=NULL,beta=NULL,damped=TRUE)
+print(sqrt(mean((hd$mean-ls_test)^2)))
+```
+
+```{r}
+plot(ls_train,xlim=c(1960,2010),ylim=c(200,500))
+lines(ls_test,lty=2)
+lines(SES$mean,col=2)
+lines(h$mean,col=3)
+lines(hd$mean,col=4)
+```
+

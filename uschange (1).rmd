@@ -1,0 +1,107 @@
+---
+title: "uschange"
+author: "Julien JACQUES"
+date: "2/19/2020"
+output: pdf_document
+---
+
+# Income
+
+```{r, message=FALSE, warning=FALSE}
+library(fpp2)
+income=uschange[,"Income"]
+autoplot(income)
+```
+
+
+We see no trend and no seasonal pattern... We can check the ACF 
+```{r}
+ggAcf(income)
+ggPacf(income)
+```
+
+It seems to be no correlation or auto-correlation... 
+We can check that with a Box.test:
+```{r}
+Box.test(income,lag=10,type="Ljung-Box")
+```
+
+Indeed, no reason to reject the fact that it is a white noise : there is nothing to forecast in this series !!
+
+# Unemployment
+
+```{r}
+library(fpp2)
+unemp=uschange[,"Unemployment"]
+autoplot(unemp)
+Box.test(unemp,lag=10,type="Ljung-Box")
+ggAcf(unemp)
+ggPacf(unemp)
+```
+
+Maybe an $AR_8$ ?
+
+```{r}
+ar8=Arima(unemp,order=c(8,0,0))
+print(ar8)
+```
+
+We can check the residual
+```{r}
+checkresiduals(ar8)
+```
+
+The residual are a white noise, we can keep this model for our forecast.
+
+```{r}
+autoplot(forecast(ar8,h=12))
+```
+
+# All 5 series togheter
+
+```{r}
+usc_train=window(uschange,start=c(1970,1),end=c(2015,4))
+usc_test=window(uschange,start=c(2016,1),end=c(2016,3))
+```
+
+We use Vectorial Auto-Regressive models. We choose the order with VARselect function :
+```{r, message=FALSE, warning=FALSE}
+library(vars)
+VARselect(usc_train, lag.max=10, type="const")
+```
+
+AIC leads to select an order equal to 3:
+```{r}
+var <- VAR(usc_train, p=3,type = "const")
+prev=forecast(var,h=3,PI=FALSE)
+plot(prev)
+print(sqrt(mean((prev$forecast$Consumption$mean-usc_test[,"Consumption"])^2)))
+print(sqrt(mean((prev$forecast$Income$mean-usc_test[,"Income"])^2)))
+print(sqrt(mean((prev$forecast$Production$mean-usc_test[,"Production"])^2)))
+print(sqrt(mean((prev$forecast$Savings$mean-usc_test[,"Savings"])^2)))
+print(sqrt(mean((prev$forecast$Unemployment$mean-usc_test[,"Unemployment"])^2)))
+```
+
+We could compare to univariate SARIMA models...
+```{r}
+fit <- auto.arima(usc_train[,"Consumption"])
+prev=forecast(fit,h=3)
+print(sqrt(mean((prev$mean-usc_test[,"Consumption"])^2)))
+fit <- auto.arima(usc_train[,"Income"])
+prev=forecast(fit,h=3)
+print(sqrt(mean((prev$mean-usc_test[,"Income"])^2)))
+fit <- auto.arima(usc_train[,"Production"])
+prev=forecast(fit,h=3)
+print(sqrt(mean((prev$mean-usc_test[,"Production"])^2)))
+fit <- auto.arima(usc_train[,"Savings"])
+prev=forecast(fit,h=3)
+print(sqrt(mean((prev$mean-usc_test[,"Savings"])^2)))
+fit <- auto.arima(usc_train[,"Unemployment"])
+prev=forecast(fit,h=3)
+print(sqrt(mean((prev$mean-usc_test[,"Unemployment"])^2)))
+```
+
+The results are better with univariate time series ! Probably because we have more flexible models for univariate models (MA part, seasonal part...)  
+
+
+
