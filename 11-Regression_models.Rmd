@@ -1,0 +1,71 @@
+---
+title: "TIME SERIES REGRESSION MODELS"
+output: html_notebook
+---
+
+Explain ts according to external features
+
+```{r}
+library(forecast)
+```
+
+```{r}
+library(fpp2)
+autoplot(uschange)
+```
+
+```{r}
+fit=tslm(Consumption~Income+Production+Unemployment+Savings,data=uschange)
+summary(fit)
+```
+
+
+Adding seasonality and trend
+
+```{r}
+fit=tslm(Consumption~Income+Production+Unemployment+Savings+trend+season,data=uschange)
+summary(fit)
+```
+
+```{r}
+CV(fit)
+```
+
+Feature selection, remove production
+
+```{r}
+fit2=tslm(Consumption~Income+Unemployment+Savings+trend+season,data=uschange)
+CV(fit2)
+```
+
+```{r}
+checkresiduals(fit,test=FALSE,plot=TRUE)
+```
+```{r}
+checkresiduals(fit,test='LB',plot=FALSE)
+```
+
+Residuals are correlated so no iid --> linear regression model not ok.
+
+***********************************************************************************************
+
+Use dynamic regression model
+
+residuals not independant --> modelize them using ARIMA model
+
+```{r}
+fit=Arima(uschange[,'Consumption'],xreg=uschange[,'Income'],order=c(1,0,2))
+summary(fit)
+```
+
+```{r}
+checkresiduals(fit,test=FALSE)
+```
+
+```{r}
+checkresiduals(fit,plot=FALSE)
+```
+
+```{r}
+autoplot(forecast(fit,xreg=rep(mean(uschange[,2]),4)))
+```
