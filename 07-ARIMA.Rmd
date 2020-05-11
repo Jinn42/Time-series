@@ -1,0 +1,128 @@
+---
+title: "ARIMA Models"
+output: html_notebook
+---
+
+Non Seasonal ARIMA model
+ARIMA means Auto Regressive Integrated Moving Average
+
+xt is an ARIMAp,d,q model if ∆dxt is an ARMAp,q model
+
+ARIMA(0,1,0) = random walk
+ARIMA(0,1,1) without constant = simple exponential smoothing
+ARIMA(0,2,1) without constant = linear exponential smoothing
+ARIMA(1,1,2) with constant = damped-trend linear exponential smoothing
+
+
+```{r}
+library(forecast)
+library(fpp2)
+```
+
+
+
+```{r}
+autoplot(uschange[,"Consumption"]) +
+xlab("Year") + ylab("Quarterly percentage change")
+```
+```{r}
+```
+
+```{r}
+Arima(uschange[,"Consumption"],order=c(2,0,2))
+```
+
+```{r}
+auto.arima(uschange[,"Consumption"])
+```
+
+to obtain a good forecast and an understanding of the model
+- let’s start by differencing the series if needed, in order to obtain something visually stationary
+- look at the ACF and PACF plot ot identify possible models
+- take eventually into account knowledge on the series (knwon autocorrelation. . . )
+- estimate models and select the best one by AICc / AIC / BIC
+
+
+```{r}
+ggAcf(uschange[,"Consumption"])
+```
+
+```{r}
+ggPacf(uschange[,"Consumption"])
+```
+
+May be an AR3 or an MA3
+
+```{r}
+Arima(uschange[,"Consumption"],order=c(3,0,0))
+```
+
+```{r}
+Arima(uschange[,"Consumption"],order=c(0,0,3))
+```
+
+Predict
+```{r}
+fit=Arima(uschange[,"Consumption"],order=c(3,0,0))
+autoplot(forecast(fit,h=10))
+```
+
+
+Another Serie : INCOME
+```{r}
+autoplot(uschange[,"Income"])
+```
+
+```{r}
+ggAcf(uschange[,"Income"])
+```
+
+```{r}
+ggPacf(uschange[,"Income"])
+```
+
+```{r}
+btest = Box.test(uschange[,"Income"],lag=10,type="Ljung-Box")
+btest$p.value
+```
+--> p-value > 0.05 - do not reject H0 --> serie can be considered as white noise.
+
+--> nothing to predict
+
+
+Another Serie : UNEMPLOYMENT
+
+```{r}
+mydata = uschange[,"Unemployment"]
+# mydata = uschange[,"Savings"]
+autoplot(mydata)
+```
+
+```{r}
+ggAcf(mydata)
+```
+
+```{r}
+ggPacf(mydata)
+```
+
+
+```{r}
+fit = Arima(mydata,order=c(0,0,11))
+fit2 = Arima(mydata,order=c(8,0,0)) # model proposed by teacher
+fit3 = Arima(mydata,order=c(3,0,2)) # model proposed by nice
+fit
+```
+
+```{r}
+checkresiduals(fit)
+```
+
+
+
+```{r}
+autoplot(forecast(fit,h=3*4+1),PI=FALSE) +
+  autolayer(forecast(fit2,h=3*4+1),PI=FALSE) + 
+  autolayer(forecast(fit3,h=3*4+1),PI=FALSE) +
+  coord_cartesian(xlim = c(1970, 2020))
+```
