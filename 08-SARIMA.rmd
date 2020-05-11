@@ -1,0 +1,67 @@
+---
+title: "Seasonal ARIMA Models"
+output: html_notebook
+---
+
+Seasonal ARIMA model
+
+```{r}
+library(forecast)
+library(fpp2)
+```
+
+
+
+```{r}
+data = euretail
+autoplot(data) + ylab("Retail index") + xlab("Year")
+```
+
+```{r}
+ggseasonplot(data)
+```
+
+```{r}
+ggtsdisplay(diff(data,lag=4))
+```
+
+or equivalent
+```{r}
+data %>% diff(lag=4) %>% ggtsdisplay()
+```
+
+still a trend --> differentiate, once again
+
+```{r}
+data %>% diff(lag=4) %>% diff() %>%ggtsdisplay()
+```
+
+```{r}
+fit1=Arima(data, order=c(0,1,1), seasonal=c(0,1,1))
+fit2=Arima(data, order=c(1,1,0), seasonal=c(1,1,0))
+```
+
+```{r}
+fit1 %>% checkresiduals()
+```
+still some non zero in acf of residuals at order 2
+--> increase value of MA
+
+check 
+fit1=Arima(data, order=c(0,1,2), seasonal=c(0,1,1))
+--> still not ok
+
+```{r}
+fit1=Arima(data, order=c(0,1,3), seasonal=c(0,1,1))
+fit1 %>% checkresiduals()
+```
+
+
+```{r}
+fit2 %>% checkresiduals()
+```
+
+```{r}
+fit1 %>% forecast(h=12) %>% autoplot()
+```
+
