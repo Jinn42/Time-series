@@ -1,0 +1,64 @@
+---
+title: "Decomposition and differencing"
+output: html_notebook
+---
+
+Moving average
+```{r}
+autoplot(co2, series="Data") +
+  autolayer(ma(co2,6), series="6-MA") +
+  autolayer(ma(co2,12), series="12-MA") +
+  xlab("Year") + ylab("CO2 concentration") +
+  ggtitle("Atmospheric concentrations of CO2 ") +
+  scale_colour_manual(values=c("Data"="grey50","6-MA"="red","12-MA"="blue"),breaks=c("Data","6-MA","12-MA"))
+```
+
+Decomposition
+```{r}
+autoplot(decompose(co2,type="additive"))+xlab('Year')
+```
+
+Apply lag operator (differencing) 
+remove the trend 
+```{r}
+par(mfrow=c(2,1))
+plot(co2)
+plot(diff(co2,differences=1))
+```
+
+No trend / no seasonal pattern
+lag = T remove seasonal pattern
+```{r}
+par(mfrow=c(2,1))
+plot(co2)
+plot(diff(co2,lag=12,differences=1))
+```
+
+
+if remaining trend after applying diff lag=12 then reapply diff with lag=1
+```{r}
+par(mfrow=c(3,1))
+plot(co2)
+plot(diff(co2,lag=12,differences=1))
+plot(diff(diff(co2,lag=12)))
+```
+
+Stationary time serie: 
+mean, variance... constant and not depending on time
+no trend / no seasonal pattern
+
+--> if white noise (residuals gaussian (0,1)) --> nothing more to modelize.
+
+Box.test - H0: serie is white noise
+lag=10 --> stat test on the first 10 auto correlation
+
+```{r}
+acf(diff(diff(co2,lag=12)))
+```
+
+p-value small --> reject H0 --> not white noise
+
+```{r}
+Box.test(diff(diff(co2,lag=12)),lag=10,type="Ljung-Box")
+hist(diff(diff(co2,lag=12)))
+```
