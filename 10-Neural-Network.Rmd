@@ -1,0 +1,29 @@
+---
+title: "Neural Network Models"
+output: html_notebook
+---
+
+Neural Network Models
+
+```{r}
+library(forecast)
+```
+
+NNAR 
+Neural Network Auto Regression
+
+Not seasonal but cyclic 
+```{r}
+data = sunspotarea
+autoplot(data)
+```
+
+```{r}
+fit = nnetar(data)
+print(fit)
+```
+
+```{r}
+p = forecast(fit,h=30)
+autoplot(p)
+```
